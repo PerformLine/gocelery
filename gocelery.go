@@ -86,6 +86,7 @@ func (cc *CeleryClient) delay(task *TaskMessage, queue ...string) (*AsyncResult,
 	celeryMessage := getCeleryMessage(encodedMessage)
 
 	if len(queue) > 0 && queue[0] != `` {
+		celeryMessage.Properties.DeliveryInfo.Exchange = ``
 		celeryMessage.Properties.DeliveryInfo.RoutingKey = queue[0]
 	}
 
