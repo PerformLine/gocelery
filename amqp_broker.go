@@ -113,6 +113,11 @@ func (b *AMQPCeleryBroker) StartConsumingChannel() error {
 func (b *AMQPCeleryBroker) SendCeleryMessage(message *CeleryMessage) error {
 	taskMessage := message.GetTaskMessage()
 	queueName := "celery"
+
+	if rk := message.Properties.DeliveryInfo.RoutingKey; rk != `` {
+		queueName = rk
+	}
+
 	_, err := b.QueueDeclare(
 		queueName, // name
 		true,      // durable
