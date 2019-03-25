@@ -71,19 +71,24 @@ func (cc *CeleryClient) Delay(task string, args ...interface{}) (*AsyncResult, e
 }
 
 // DelayKwargs gets asynchronous results with argument map
-func (cc *CeleryClient) DelayKwargs(task string, args map[string]interface{}) (*AsyncResult, error) {
+func (cc *CeleryClient) DelayKwargs(task string, args map[string]interface{}, queue ...string) (*AsyncResult, error) {
 	celeryTask := getTaskMessage(task)
 	celeryTask.Kwargs = args
-	return cc.delay(celeryTask)
+	return cc.delay(celeryTask, queue...)
 }
 
-func (cc *CeleryClient) delay(task *TaskMessage) (*AsyncResult, error) {
+func (cc *CeleryClient) delay(task *TaskMessage, queue ...string) (*AsyncResult, error) {
 	defer releaseTaskMessage(task)
 	encodedMessage, err := task.Encode()
 	if err != nil {
 		return nil, err
 	}
 	celeryMessage := getCeleryMessage(encodedMessage)
+
+	if len(queue) > 0 && queue[0] != `` {
+		celeryMessage.Properties.DeliveryInfo.RoutingKey = queue[0]
+	}
+
 	defer releaseCeleryMessage(celeryMessage)
 	err = cc.broker.SendCeleryMessage(celeryMessage)
 	if err != nil {
