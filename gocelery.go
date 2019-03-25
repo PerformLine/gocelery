@@ -92,7 +92,7 @@ func (cc *CeleryClient) delay(task *TaskMessage, queue ...string) (*AsyncResult,
 
 	defer releaseCeleryMessage(celeryMessage)
 
-	fmt.Printf("%+v\b", celeryMessage.Properties.DeliveryInfo)
+	fmt.Printf("%+v\n", celeryMessage.Properties.DeliveryInfo)
 
 	err = cc.broker.SendCeleryMessage(celeryMessage)
 	if err != nil {
