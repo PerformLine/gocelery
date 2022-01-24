@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ghetzel/go-stockutil/stringutil"
+	"github.com/PerformLine/go-stockutil/stringutil"
 )
 
 const TIMEOUT = 2 * time.Second

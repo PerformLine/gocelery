@@ -11,7 +11,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ghetzel/go-stockutil/stringutil"
+	"github.com/PerformLine/go-stockutil/stringutil"
 )
 
 // TestBackendRedisGetResult is Redis specific test to get result from backend

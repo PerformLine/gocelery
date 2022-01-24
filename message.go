@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ghetzel/go-stockutil/stringutil"
+	"github.com/PerformLine/go-stockutil/stringutil"
 )
 
 // CeleryMessage is actual message to be sent to Redis

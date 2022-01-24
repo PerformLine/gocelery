@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ghetzel/go-stockutil/stringutil"
+	"github.com/PerformLine/go-stockutil/stringutil"
 )
 
 // add is test task method
