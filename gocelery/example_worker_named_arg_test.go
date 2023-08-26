@@ -2,13 +2,13 @@
 // This file is part of gocelery which is released under MIT license.
 // See file LICENSE for full license details.
 
-package main
+package gocelery
 
 import (
 	"fmt"
 	"time"
 
-	"github.com/PerformLine/gocelery/gocelery"
+	"github.com/gomodule/redigo/redis"
 )
 
 // exampleAddTask is integer addition task
@@ -45,17 +45,28 @@ func (a *exampleAddTask) RunTask() (interface{}, error) {
 	return result, nil
 }
 
-func main() {
+func Example_workerWithNamedArguments() {
+
+	// create redis connection pool
+	redisPool := &redis.Pool{
+		Dial: func() (redis.Conn, error) {
+			c, err := redis.DialURL("redis://")
+			if err != nil {
+				return nil, err
+			}
+			return c, err
+		},
+	}
 
 	// initialize celery client
-	cli, _ := gocelery.NewCeleryClient(
-		gocelery.NewRedisCeleryBroker("redis://"),
-		gocelery.NewRedisCeleryBackend("redis://"),
+	cli, _ := NewCeleryClient(
+		NewRedisBroker(redisPool),
+		&RedisCeleryBackend{Pool: redisPool},
 		5, // number of workers
 	)
 
 	// register task
-	cli.Register("worker.add_reflect", &exampleAddTask{})
+	cli.Register("add", &exampleAddTask{})
 
 	// start workers (non-blocking call)
 	cli.StartWorker()
