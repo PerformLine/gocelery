@@ -1,6 +1,6 @@
 module github.com/PerformLine/gocelery
 
-go 1.23
+go 1.22
 
 require (
 	github.com/PerformLine/go-stockutil v1.9.5
