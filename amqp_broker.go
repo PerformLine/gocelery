@@ -5,6 +5,7 @@
 package gocelery
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -46,7 +47,7 @@ func NewAMQPQueue(name string) *AMQPQueue {
 	}
 }
 
-//AMQPCeleryBroker is RedisBroker for AMQP
+// AMQPCeleryBroker is RedisBroker for AMQP
 type AMQPCeleryBroker struct {
 	*amqp.Channel
 	connection       *amqp.Connection
@@ -110,8 +111,8 @@ func (b *AMQPCeleryBroker) StartConsumingChannel() error {
 }
 
 // SendCeleryMessage sends CeleryMessage to broker
-func (b *AMQPCeleryBroker) SendCeleryMessage(message *CeleryMessage) error {
-	taskMessage := message.GetTaskMessage()
+func (b *AMQPCeleryBroker) SendCeleryMessage(ctx context.Context, timeout time.Duration, message *CeleryMessage) error {
+	taskMessage := message.GetTaskMessage(ctx, timeout)
 	queueName := "celery"
 
 	if rk := message.Properties.DeliveryInfo.RoutingKey; rk != `` {
@@ -164,7 +165,7 @@ func (b *AMQPCeleryBroker) SendCeleryMessage(message *CeleryMessage) error {
 }
 
 // GetTaskMessage retrieves task message from AMQP queue
-func (b *AMQPCeleryBroker) GetTaskMessage() (*TaskMessage, error) {
+func (b *AMQPCeleryBroker) GetTaskMessage(ctx context.Context, timeout time.Duration) (*TaskMessage, error) {
 	select {
 	case delivery := <-b.consumingChannel:
 		deliveryAck(delivery)

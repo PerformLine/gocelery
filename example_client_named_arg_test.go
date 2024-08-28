@@ -5,6 +5,7 @@
 package gocelery
 
 import (
+	"context"
 	"log"
 	"math/rand"
 	"reflect"
@@ -12,6 +13,7 @@ import (
 )
 
 func Example_clientWithNamedArguments() {
+	ctx := context.Background()
 
 	// initialize celery client
 	cli, _ := NewCeleryClient(
@@ -27,6 +29,8 @@ func Example_clientWithNamedArguments() {
 
 	// run task
 	asyncResult, err := cli.DelayKwargs(
+		ctx,
+		TIMEOUT,
 		taskName,
 		map[string]interface{}{
 			"a": argA,
@@ -38,7 +42,7 @@ func Example_clientWithNamedArguments() {
 	}
 
 	// get results from backend with timeout
-	res, err := asyncResult.Get(10 * time.Second)
+	res, err := asyncResult.Get(ctx, 10*time.Second)
 	if err != nil {
 		panic(err)
 	}

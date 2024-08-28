@@ -56,21 +56,13 @@ Also take a look at `example` directory for sample python code.
 Run Celery Worker implemented in Go
 
 ```go
-// create redis connection pool
-redisPool := &redis.Pool{
-  Dial: func() (redis.Conn, error) {
-		c, err := redis.DialURL("redis://")
-		if err != nil {
-			return nil, err
-		}
-		return c, err
-	},
-}
+// create redis connection 
+redisClient := gocelery.NewRedisClient("redis://")
 
 // initialize celery client
 cli, _ := gocelery.NewCeleryClient(
-	gocelery.NewRedisBroker(redisPool),
-	&gocelery.RedisCeleryBackend{Pool: redisPool},
+	gocelery.NewRedisBroker(redisClient),
+	&gocelery.RedisCeleryBackend{Client: redisClient},
 	5, // number of workers
 )
 
@@ -83,7 +75,7 @@ add := func(a, b int) int {
 cli.Register("worker.add", add)
 
 // start workers (non-blocking call)
-cli.StartWorker()
+cli.StartWorker(ctx, TIMEOUT)
 
 // wait for client request
 time.Sleep(10 * time.Second)
@@ -139,21 +131,13 @@ celery -A worker worker --loglevel=debug --without-heartbeat --without-mingle
 Submit Task from Go Client
 
 ```go
-// create redis connection pool
-redisPool := &redis.Pool{
-  Dial: func() (redis.Conn, error) {
-		c, err := redis.DialURL("redis://")
-		if err != nil {
-			return nil, err
-		}
-		return c, err
-	},
-}
+// create redis connection client
+redisClient := gocelery.NewRedisClient("redis://")
 
 // initialize celery client
 cli, _ := gocelery.NewCeleryClient(
-	gocelery.NewRedisBroker(redisPool),
-	&gocelery.RedisCeleryBackend{Pool: redisPool},
+	gocelery.NewRedisBroker(redisClient),
+	&gocelery.RedisCeleryBackend{Client: redisClient},
 	1,
 )
 
@@ -169,7 +153,7 @@ if err != nil {
 }
 
 // get results from backend with timeout
-res, err := asyncResult.Get(10 * time.Second)
+res, err := asyncResult.Get(ctx, 10 * time.Second)
 if err != nil {
 	panic(err)
 }

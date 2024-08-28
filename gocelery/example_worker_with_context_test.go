@@ -8,26 +8,16 @@ import (
 	"context"
 	"time"
 
-	"github.com/gomodule/redigo/redis"
+	"github.com/PerformLine/gocelery"
 )
 
 func Example_workerWithContext() {
-
-	// create redis connection pool
-	redisPool := &redis.Pool{
-		Dial: func() (redis.Conn, error) {
-			c, err := redis.DialURL("redis://")
-			if err != nil {
-				return nil, err
-			}
-			return c, err
-		},
-	}
+	client := gocelery.NewRedisClient("redis://")
 
 	// initialize celery client
 	cli, _ := NewCeleryClient(
-		NewRedisBroker(redisPool),
-		&RedisCeleryBackend{Pool: redisPool},
+		NewRedisBroker(client),
+		&RedisCeleryBackend{Client: client},
 		1,
 	)
 
@@ -43,7 +33,7 @@ func Example_workerWithContext() {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// start workers (non-blocking call)
-	cli.StartWorkerWithContext(ctx)
+	cli.StartWorkerWithContext(ctx, TIMEOUT)
 
 	// wait for client request
 	time.Sleep(10 * time.Second)

@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"reflect"
 	"testing"
+	"time"
 
 	uuid "github.com/satori/go.uuid"
 )
@@ -40,15 +41,14 @@ func TestBackendRedisGetResult(t *testing.T) {
 			releaseResultMessage(resultMessage)
 			continue
 		}
-		conn := tc.backend.Get()
-		defer conn.Close()
-		_, err = conn.Do("SETEX", fmt.Sprintf("celery-task-meta-%s", taskID), 86400, messageBytes)
+		conn := tc.backend
+		_, err = conn.SetEx(ctx, fmt.Sprintf("celery-task-meta-%s", taskID), messageBytes, time.Hour * 24).Result()
 		if err != nil {
 			t.Errorf("test '%s': error setting result message to celery: %v", tc.name, err)
 			releaseResultMessage(resultMessage)
 			continue
 		}
-		res, err := tc.backend.GetResult(taskID)
+		res, err := tc.backend.GetResult(ctx, taskID)
 		if err != nil {
 			t.Errorf("test '%s': error getting result from backend: %v", tc.name, err)
 			releaseResultMessage(resultMessage)
@@ -80,27 +80,26 @@ func TestBackendRedisSetResult(t *testing.T) {
 		taskID := uuid.Must(uuid.NewV4()).String()
 		value := reflect.ValueOf(rand.Float64())
 		resultMessage := getReflectionResultMessage(&value)
-		err := tc.backend.SetResult(taskID, resultMessage)
+		err := tc.backend.SetResult(ctx, taskID, resultMessage)
 		if err != nil {
 			t.Errorf("test '%s': error setting result to backend: %v", tc.name, err)
 			releaseResultMessage(resultMessage)
 			continue
 		}
-		conn := tc.backend.Get()
-		defer conn.Close()
-		val, err := conn.Do("GET", fmt.Sprintf("celery-task-meta-%s", taskID))
+		conn := tc.backend
+		val, err := conn.Get(ctx, fmt.Sprintf("celery-task-meta-%s", taskID)).Result()
 		if err != nil {
 			t.Errorf("test '%s': error getting data from redis: %v", tc.name, err)
 			releaseResultMessage(resultMessage)
 			continue
 		}
-		if val == nil {
+		if val == "" {
 			t.Errorf("test '%s': result not available from redis", tc.name)
 			releaseResultMessage(resultMessage)
 			continue
 		}
 		var res ResultMessage
-		err = json.Unmarshal(val.([]byte), &res)
+		err = json.Unmarshal([]byte(val), &res)
 		if err != nil {
 			t.Errorf("test '%s': error parsing json result", tc.name)
 			releaseResultMessage(resultMessage)
@@ -136,13 +135,13 @@ func TestBackendSetGetResult(t *testing.T) {
 		taskID := uuid.Must(uuid.NewV4()).String()
 		value := reflect.ValueOf(rand.Float64())
 		resultMessage := getReflectionResultMessage(&value)
-		err := tc.backend.SetResult(taskID, resultMessage)
+		err := tc.backend.SetResult(ctx, taskID, resultMessage)
 		if err != nil {
 			t.Errorf("error setting result to backend: %v", err)
 			releaseResultMessage(resultMessage)
 			continue
 		}
-		res, err := tc.backend.GetResult(taskID)
+		res, err := tc.backend.GetResult(ctx, taskID)
 		if err != nil {
 			t.Errorf("error getting result from backend: %v", err)
 			releaseResultMessage(resultMessage)

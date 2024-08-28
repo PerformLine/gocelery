@@ -4,7 +4,10 @@
 
 package gocelery
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 func Example_worker() {
 
@@ -24,7 +27,7 @@ func Example_worker() {
 	cli.Register("add", add)
 
 	// start workers (non-blocking call)
-	cli.StartWorker()
+	cli.StartWorker(context.Background(), TIMEOUT)
 
 	// wait for client request
 	time.Sleep(10 * time.Second)

@@ -153,8 +153,9 @@ func TestWorkerStartStop(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
+		ctx := context.Background()
 		celeryWorker := NewCeleryWorker(tc.broker, tc.backend, 1000)
-		go celeryWorker.StartWorker()
+		go celeryWorker.StartWorker(ctx, TIMEOUT)
 		time.Sleep(100 * time.Millisecond)
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		go func() {

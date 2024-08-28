@@ -5,6 +5,7 @@
 package gocelery
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 	"time"
@@ -44,7 +45,7 @@ func (b *AMQPCeleryBackend) Reconnect() {
 }
 
 // GetResult retrieves result from AMQP queue
-func (b *AMQPCeleryBackend) GetResult(taskID string) (*ResultMessage, error) {
+func (b *AMQPCeleryBackend) GetResult(ctx context.Context, taskID string) (*ResultMessage, error) {
 
 	queueName := strings.Replace(taskID, "-", "", -1)
 
@@ -92,7 +93,7 @@ func (b *AMQPCeleryBackend) GetResult(taskID string) (*ResultMessage, error) {
 }
 
 // SetResult sets result back to AMQP queue
-func (b *AMQPCeleryBackend) SetResult(taskID string, result *ResultMessage) error {
+func (b *AMQPCeleryBackend) SetResult(ctx context.Context, taskID string, result *ResultMessage) error {
 
 	result.ID = taskID
 

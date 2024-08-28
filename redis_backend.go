@@ -5,37 +5,37 @@
 package gocelery
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
-	"github.com/gomodule/redigo/redis"
+	"github.com/redis/go-redis/v9"
 )
 
 // RedisCeleryBackend is celery backend for redis
 type RedisCeleryBackend struct {
-	*redis.Pool
+	*redis.Client
 }
 
 // NewRedisCeleryBackend creates new RedisCeleryBackend
 func NewRedisCeleryBackend(uri string) *RedisCeleryBackend {
 	return &RedisCeleryBackend{
-		Pool: NewRedisPool(uri),
+		Client: NewRedisClient(uri),
 	}
 }
 
 // GetResult queries redis backend to get asynchronous result
-func (cb *RedisCeleryBackend) GetResult(taskID string) (*ResultMessage, error) {
-	conn := cb.Get()
-	defer conn.Close()
-	val, err := conn.Do("GET", fmt.Sprintf("celery-task-meta-%s", taskID))
+func (cb *RedisCeleryBackend) GetResult(ctx context.Context, taskID string) (*ResultMessage, error) {
+	val, err := cb.Get(ctx, fmt.Sprintf("celery-task-meta-%s", taskID)).Result()
 	if err != nil {
 		return nil, err
 	}
-	if val == nil {
+	if val == "" {
 		return nil, fmt.Errorf("result not available")
 	}
 	var resultMessage ResultMessage
-	err = json.Unmarshal(val.([]byte), &resultMessage)
+	err = json.Unmarshal([]byte(val), &resultMessage)
 	if err != nil {
 		return nil, err
 	}
@@ -43,13 +43,11 @@ func (cb *RedisCeleryBackend) GetResult(taskID string) (*ResultMessage, error) {
 }
 
 // SetResult pushes result back into redis backend
-func (cb *RedisCeleryBackend) SetResult(taskID string, result *ResultMessage) error {
+func (cb *RedisCeleryBackend) SetResult(ctx context.Context, taskID string, result *ResultMessage) error {
 	resBytes, err := json.Marshal(result)
 	if err != nil {
 		return err
 	}
-	conn := cb.Get()
-	defer conn.Close()
-	_, err = conn.Do("SETEX", fmt.Sprintf("celery-task-meta-%s", taskID), 86400, resBytes)
+	_, err = cb.SetEx(ctx, fmt.Sprintf("celery-task-meta-%s", taskID), resBytes, time.Hour*24).Result()
 	return err
 }
