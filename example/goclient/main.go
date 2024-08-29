@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"reflect"
 	"time"
+	"context"
 
 	"github.com/PerformLine/gocelery/gocelery"
 )
@@ -17,6 +18,8 @@ import (
 // celery -A worker worker --loglevel=debug --without-heartbeat --without-mingle
 
 func main() {
+	ctx := context.Background()
+	timeout := time.Second * 2
 
 	// initialize celery client
 	cli, _ := gocelery.NewCeleryClient(
@@ -31,13 +34,13 @@ func main() {
 	argB := rand.Intn(10)
 
 	// run task
-	asyncResult, err := cli.Delay(taskName, argA, argB)
+	asyncResult, err := cli.Delay(ctx, timeout, taskName, argA, argB)
 	if err != nil {
 		panic(err)
 	}
 
 	// get results from backend with timeout
-	res, err := asyncResult.Get(10 * time.Second)
+	res, err := asyncResult.Get(ctx, 10*time.Second)
 	if err != nil {
 		panic(err)
 	}

@@ -10,27 +10,16 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/gomodule/redigo/redis"
+	"github.com/PerformLine/gocelery"
 )
 
 func Example_clientWithNamedArguments() {
-
-	// create redis connection pool
-	// create redis connection pool
-	redisPool := &redis.Pool{
-		Dial: func() (redis.Conn, error) {
-			c, err := redis.DialURL("redis://")
-			if err != nil {
-				return nil, err
-			}
-			return c, err
-		},
-	}
+	client := gocelery.NewRedisClient("redis://")
 
 	// initialize celery client
 	cli, _ := NewCeleryClient(
-		NewRedisBroker(redisPool),
-		&RedisCeleryBackend{Pool: redisPool},
+		NewRedisBroker(client),
+		&RedisCeleryBackend{Client: client},
 		1,
 	)
 
@@ -41,6 +30,8 @@ func Example_clientWithNamedArguments() {
 
 	// run task
 	asyncResult, err := cli.DelayKwargs(
+		ctx,
+		TIMEOUT,
 		taskName,
 		map[string]interface{}{
 			"a": argA,
@@ -52,7 +43,7 @@ func Example_clientWithNamedArguments() {
 	}
 
 	// get results from backend with timeout
-	res, err := asyncResult.Get(10 * time.Second)
+	res, err := asyncResult.Get(ctx, 10*time.Second)
 	if err != nil {
 		panic(err)
 	}

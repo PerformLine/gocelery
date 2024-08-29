@@ -19,14 +19,14 @@ type CeleryClient struct {
 
 // CeleryBroker is interface for celery broker database
 type CeleryBroker interface {
-	SendCeleryMessage(*CeleryMessage) error
-	GetTaskMessage() (*TaskMessage, error) // must be non-blocking
+	SendCeleryMessage(context.Context, time.Duration, *CeleryMessage) error
+	GetTaskMessage(context.Context, time.Duration) (*TaskMessage, error) // must be non-blocking
 }
 
 // CeleryBackend is interface for celery backend database
 type CeleryBackend interface {
-	GetResult(string) (*ResultMessage, error) // must be non-blocking
-	SetResult(taskID string, result *ResultMessage) error
+	GetResult(ctx context.Context, taskID string) (*ResultMessage, error) // must be non-blocking
+	SetResult(ctx context.Context, taskID string, result *ResultMessage) error
 }
 
 // NewCeleryClient creates new celery client
@@ -44,13 +44,13 @@ func (cc *CeleryClient) Register(name string, task interface{}) {
 }
 
 // StartWorkerWithContext starts celery workers with given parent context
-func (cc *CeleryClient) StartWorkerWithContext(ctx context.Context) {
-	cc.worker.StartWorkerWithContext(ctx)
+func (cc *CeleryClient) StartWorkerWithContext(ctx context.Context, timeout time.Duration) {
+	cc.worker.StartWorkerWithContext(ctx, timeout)
 }
 
 // StartWorker starts celery workers
-func (cc *CeleryClient) StartWorker() {
-	cc.worker.StartWorker()
+func (cc *CeleryClient) StartWorker(ctx context.Context, timeout time.Duration) {
+	cc.worker.StartWorker(ctx, timeout)
 }
 
 // StopWorker stops celery workers
@@ -64,20 +64,20 @@ func (cc *CeleryClient) WaitForStopWorker() {
 }
 
 // Delay gets asynchronous result
-func (cc *CeleryClient) Delay(task string, args ...interface{}) (*AsyncResult, error) {
-	celeryTask := getTaskMessage(task)
+func (cc *CeleryClient) Delay(ctx context.Context, timeout time.Duration, task string, args ...interface{}) (*AsyncResult, error) {
+	celeryTask := getTaskMessage(ctx, task)
 	celeryTask.Args = args
-	return cc.delay(celeryTask)
+	return cc.delay(ctx, timeout, celeryTask)
 }
 
 // DelayKwargs gets asynchronous results with argument map
-func (cc *CeleryClient) DelayKwargs(task string, args map[string]interface{}, queue ...string) (*AsyncResult, error) {
-	celeryTask := getTaskMessage(task)
+func (cc *CeleryClient) DelayKwargs(ctx context.Context, timeout time.Duration, task string, args map[string]interface{}, queue ...string) (*AsyncResult, error) {
+	celeryTask := getTaskMessage(ctx, task)
 	celeryTask.Kwargs = args
-	return cc.delay(celeryTask, queue...)
+	return cc.delay(ctx, timeout, celeryTask, queue...)
 }
 
-func (cc *CeleryClient) delay(task *TaskMessage, queue ...string) (*AsyncResult, error) {
+func (cc *CeleryClient) delay(ctx context.Context, timeout time.Duration, task *TaskMessage, queue ...string) (*AsyncResult, error) {
 	defer releaseTaskMessage(task)
 	encodedMessage, err := task.Encode()
 	if err != nil {
@@ -92,7 +92,7 @@ func (cc *CeleryClient) delay(task *TaskMessage, queue ...string) (*AsyncResult,
 
 	defer releaseCeleryMessage(celeryMessage)
 
-	err = cc.broker.SendCeleryMessage(celeryMessage)
+	err = cc.broker.SendCeleryMessage(ctx, timeout, celeryMessage)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +124,7 @@ type AsyncResult struct {
 
 // Get gets actual result from backend
 // It blocks for period of time set by timeout and returns error if unavailable
-func (ar *AsyncResult) Get(timeout time.Duration) (interface{}, error) {
+func (ar *AsyncResult) Get(ctx context.Context, timeout time.Duration) (interface{}, error) {
 	ticker := time.NewTicker(50 * time.Millisecond)
 	timeoutChan := time.After(timeout)
 	for {
@@ -133,7 +133,7 @@ func (ar *AsyncResult) Get(timeout time.Duration) (interface{}, error) {
 			err := fmt.Errorf("%v timeout getting result for %s", timeout, ar.taskID)
 			return nil, err
 		case <-ticker.C:
-			val, err := ar.AsyncGet()
+			val, err := ar.AsyncGet(ctx)
 			if err != nil {
 				continue
 			}
@@ -143,11 +143,11 @@ func (ar *AsyncResult) Get(timeout time.Duration) (interface{}, error) {
 }
 
 // AsyncGet gets actual result from backend and returns nil if not available
-func (ar *AsyncResult) AsyncGet() (interface{}, error) {
+func (ar *AsyncResult) AsyncGet(ctx context.Context) (interface{}, error) {
 	if ar.result != nil {
 		return ar.result.Result, nil
 	}
-	val, err := ar.backend.GetResult(ar.taskID)
+	val, err := ar.backend.GetResult(ctx, ar.taskID)
 	if err != nil {
 		return nil, err
 	}
@@ -162,11 +162,11 @@ func (ar *AsyncResult) AsyncGet() (interface{}, error) {
 }
 
 // Ready checks if actual result is ready
-func (ar *AsyncResult) Ready() (bool, error) {
+func (ar *AsyncResult) Ready(ctx context.Context) (bool, error) {
 	if ar.result != nil {
 		return true, nil
 	}
-	val, err := ar.backend.GetResult(ar.taskID)
+	val, err := ar.backend.GetResult(ctx, ar.taskID)
 	if err != nil {
 		return false, err
 	}

@@ -70,7 +70,7 @@ add := func(a, b int) int {
 cli.Register("worker.add", add)
 
 // start workers (non-blocking call)
-cli.StartWorker()
+cli.StartWorker(ctx, TIMEOUT)
 
 // wait for client request
 time.Sleep(10 * time.Second)
@@ -146,7 +146,7 @@ func main() {
 	}
 
 	// get results from backend with timeout
-	res, err := asyncResult.Get(10 * time.Second)
+	res, err := asyncResult.Get(ctx, 10 * time.Second)
 	if err != nil {
 		panic(err)
 	}

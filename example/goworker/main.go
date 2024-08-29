@@ -6,6 +6,7 @@ package main
 
 import (
 	"fmt"
+	"context"
 	"time"
 
 	"github.com/PerformLine/gocelery/gocelery"
@@ -46,6 +47,7 @@ func (a *exampleAddTask) RunTask() (interface{}, error) {
 }
 
 func main() {
+	ctx := context.Background()
 
 	// initialize celery client
 	cli, _ := gocelery.NewCeleryClient(
@@ -58,7 +60,7 @@ func main() {
 	cli.Register("worker.add_reflect", &exampleAddTask{})
 
 	// start workers (non-blocking call)
-	cli.StartWorker()
+	cli.StartWorker(ctx, time.Second*2)
 
 	// wait for client request
 	time.Sleep(10 * time.Second)

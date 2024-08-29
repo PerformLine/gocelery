@@ -37,7 +37,7 @@ func NewCeleryWorker(broker CeleryBroker, backend CeleryBackend, numWorkers int)
 }
 
 // StartWorkerWithContext starts celery worker(s) with given parent context
-func (w *CeleryWorker) StartWorkerWithContext(ctx context.Context) {
+func (w *CeleryWorker) StartWorkerWithContext(ctx context.Context, timeout time.Duration) {
 	var wctx context.Context
 	wctx, w.cancel = context.WithCancel(ctx)
 	w.workWG.Add(w.numWorkers)
@@ -51,7 +51,7 @@ func (w *CeleryWorker) StartWorkerWithContext(ctx context.Context) {
 					return
 				case <-ticker.C:
 					// process task request
-					taskMessage, err := w.broker.GetTaskMessage()
+					taskMessage, err := w.broker.GetTaskMessage(ctx, timeout)
 					if err != nil || taskMessage == nil {
 						continue
 					}
@@ -65,7 +65,7 @@ func (w *CeleryWorker) StartWorkerWithContext(ctx context.Context) {
 					defer releaseResultMessage(resultMsg)
 
 					// push result to backend
-					err = w.backend.SetResult(taskMessage.ID, resultMsg)
+					err = w.backend.SetResult(ctx, taskMessage.ID, resultMsg)
 					if err != nil {
 						log.Printf("failed to push result: %+v", err)
 						continue
@@ -77,8 +77,8 @@ func (w *CeleryWorker) StartWorkerWithContext(ctx context.Context) {
 }
 
 // StartWorker starts celery workers
-func (w *CeleryWorker) StartWorker() {
-	w.StartWorkerWithContext(context.Background())
+func (w *CeleryWorker) StartWorker(ctx context.Context, timeout time.Duration) {
+	w.StartWorkerWithContext(ctx, timeout)
 }
 
 // StopWorker stops celery workers

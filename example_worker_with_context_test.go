@@ -30,7 +30,7 @@ func Example_workerWithContext() {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// start workers (non-blocking call)
-	cli.StartWorkerWithContext(ctx)
+	cli.StartWorkerWithContext(ctx, TIMEOUT)
 
 	// wait for client request
 	time.Sleep(10 * time.Second)

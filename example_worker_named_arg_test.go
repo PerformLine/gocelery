@@ -5,6 +5,7 @@
 package gocelery
 
 import (
+	"context"
 	"fmt"
 	"time"
 )
@@ -56,7 +57,7 @@ func Example_workerWithNamedArguments() {
 	cli.Register("add", &exampleAddTask{})
 
 	// start workers (non-blocking call)
-	cli.StartWorker()
+	cli.StartWorker(context.Background(), TIMEOUT)
 
 	// wait for client request
 	time.Sleep(10 * time.Second)

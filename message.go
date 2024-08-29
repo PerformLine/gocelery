@@ -5,6 +5,7 @@
 package gocelery
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"log"
@@ -84,7 +85,7 @@ type CeleryDeliveryInfo struct {
 }
 
 // GetTaskMessage retrieve and decode task messages from broker
-func (cm *CeleryMessage) GetTaskMessage() *TaskMessage {
+func (cm *CeleryMessage) GetTaskMessage(ctx context.Context, timeout time.Duration) *TaskMessage {
 	// ensure content-type is 'application/json'
 	if cm.ContentType != "application/json" {
 		log.Println("unsupported content type " + cm.ContentType)
@@ -138,7 +139,7 @@ var taskMessagePool = sync.Pool{
 	},
 }
 
-func getTaskMessage(task string) *TaskMessage {
+func getTaskMessage(ctx context.Context, task string) *TaskMessage {
 	msg := taskMessagePool.Get().(*TaskMessage)
 	msg.Task = task
 	msg.Args = make([]interface{}, 0)
