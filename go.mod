@@ -4,7 +4,7 @@ go 1.22
 
 require (
 	github.com/PerformLine/go-stockutil v1.9.5
-	github.com/redis/go-redis/v9 v9.6.1
+	github.com/redis/go-redis/v9 v9.6.3
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
 	github.com/streadway/amqp v1.1.0
 )
